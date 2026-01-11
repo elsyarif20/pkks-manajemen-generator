@@ -1,0 +1,5 @@
+{
+  "name": "PKKS Manajemen Generator",
+  "description": "Aplikasi generator instrumen PKKS Komponen Manajemen. Masukan Visi-Misi untuk menghasilkan dokumen instrumen yang terisi otomatis dan ekspor ke berbagai format.",
+  "requestFramePermissions": []
+}
