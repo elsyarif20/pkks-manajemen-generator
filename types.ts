@@ -13,6 +13,30 @@ export interface InstrumentRow {
   skor: number;
 }
 
+export interface Teacher {
+  id: number;
+  name: string;
+  nuptk: string;
+  gender: 'L' | 'P';
+}
+
+export interface ScheduleItem {
+  subject: string;
+  teacher: string;
+  hours: number;
+}
+
+export interface ClassSchedule {
+  className: string;
+  items: ScheduleItem[];
+}
+
+export interface CalendarEvent {
+  date: string; // e.g., "14 Juli 2025" or range "14-16 Juli 2025"
+  description: string;
+  type: 'HOLIDAY' | 'ACADEMIC' | 'EXAM' | 'REPORT';
+}
+
 export interface SchoolData {
   name: string;
   nss: string; // New: NSS/NPSN
@@ -43,6 +67,10 @@ export interface SchoolData {
   vision: string;
   mission: string;
   
+  teachers: Teacher[]; // New: List of teachers
+  classSchedules: ClassSchedule[]; // New: Reference for lesson schedules
+  academicCalendar: CalendarEvent[]; // New: Reference for Academic Calendar
+
   // Penilai & Berita Acara fields
   assessmentDate: string; // Waktu Pelaksanaan
   

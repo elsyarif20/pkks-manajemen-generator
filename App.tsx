@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { InstrumentRow, SchoolData, CheckItem } from './types';
-import { INITIAL_ROWS } from './constants';
+import { INITIAL_ROWS, INITIAL_TEACHERS, MASTER_CLASS_SCHEDULES, ACADEMIC_CALENDAR_2025_2026 } from './constants';
 import { generateInstrumentContent, generateSpecificDocument } from './services/geminiService';
 import { 
   FileText, 
@@ -19,7 +19,9 @@ import {
   ChevronDown,
   ChevronUp,
   Users,
-  BookOpen
+  BookOpen,
+  Contact,
+  CalendarDays
 } from 'lucide-react';
 import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
@@ -33,13 +35,13 @@ const App: React.FC = () => {
     name: "SMA ISLAM AL-GHOZALI",
     nss: "30402021xxxx",
     status: "Swasta",
-    address: "Jl. Raya Permata No. 123",
-    subdistrict: "Cilebut",
-    district: "Sukaraja",
-    regency: "Bogor",
+    address: "Jl. Permata No. 19",
+    subdistrict: "Desa Curug",
+    district: "Kecamatan Gunungsindur",
+    regency: "Kabupaten Bogor",
     province: "Jawa Barat",
-    postalCode: "16710",
-    phone: "0251-1234567",
+    postalCode: "16340",
+    phone: "(0251) 8614072",
     fax: "-",
     email: "sma.alghozali@example.com",
     website: "www.sekolah.sch.id",
@@ -59,6 +61,10 @@ const App: React.FC = () => {
     vision: "“TERWUJUDNYA PESERTA DIDIK YANG BERPRESTASI, BERAKHLAK MULIA, BERILMU PENGETAHUAN, DAN TEKNOLOGI BERDASARKAN IMAN DAN TAQWA.\"",
     mission: `a. Meningkatkan kualitas pembelajaran dan pengajaran...`, // Truncated for brevity in default
     
+    teachers: INITIAL_TEACHERS,
+    classSchedules: MASTER_CLASS_SCHEDULES,
+    academicCalendar: ACADEMIC_CALENDAR_2025_2026,
+
     assessmentDate: "2026-01-12",
     
     assessor1: "Dra. Hj. Pengawas, M.Pd",
@@ -765,6 +771,54 @@ const App: React.FC = () => {
     });
   };
 
+  // --- Data Guru Generator ---
+  const handleGenerateDataGuru = () => {
+    const content = `
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <h3 style="text-align: center; margin-bottom: 20px; font-weight: bold;">DATA GURU ${schoolData.name.toUpperCase()}</h3>
+        <table style="width: 100%; border-collapse: collapse; font-size: 11pt;">
+          <thead>
+            <tr style="background-color: #f2f2f2;">
+              <th style="border: 1px solid black; padding: 8px; text-align: center; width: 40px;">No</th>
+              <th style="border: 1px solid black; padding: 8px; text-align: left;">Nama</th>
+              <th style="border: 1px solid black; padding: 8px; text-align: center; width: 150px;">NUPTK</th>
+              <th style="border: 1px solid black; padding: 8px; text-align: center; width: 40px;">JK</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${schoolData.teachers.map((teacher, index) => `
+              <tr>
+                <td style="border: 1px solid black; padding: 5px; text-align: center;">${index + 1}</td>
+                <td style="border: 1px solid black; padding: 5px; text-align: left;">${teacher.name}</td>
+                <td style="border: 1px solid black; padding: 5px; text-align: center;">${teacher.nuptk || '-'}</td>
+                <td style="border: 1px solid black; padding: 5px; text-align: center;">${teacher.gender}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    setDocModal({
+      isOpen: true,
+      title: "DATA GURU",
+      content: content,
+      isLoading: false
+    });
+  };
+
+  const handleGenerateSKPembagianTugas = async () => {
+    setDocModal({ isOpen: true, title: "SK Pembagian Tugas Mengajar", content: '', isLoading: true });
+    
+    try {
+      // Use "SK Pembagian Tugas" as the document name
+      const content = await generateSpecificDocument(schoolData, "SK Pembagian Tugas Mengajar", "Jadwal Pelajaran dan Pembagian Tugas Guru Semester Genap 2025/2026");
+      setDocModal(prev => ({ ...prev, content: content, isLoading: false }));
+    } catch (error) {
+      setDocModal(prev => ({ ...prev, content: "<p>Gagal membuat dokumen.</p>", isLoading: false }));
+    }
+  }
+
   // --- Document Generator Handler ---
 
   const handleGenerateDocument = async (row: InstrumentRow, item: CheckItem) => {
@@ -1015,6 +1069,14 @@ const App: React.FC = () => {
                 <Users size={16} /> Tim PKKS
              </button>
 
+             <button onClick={handleGenerateDataGuru} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded text-sm transition-colors shadow-sm">
+                <Contact size={16} /> Data Guru
+             </button>
+
+             <button onClick={handleGenerateSKPembagianTugas} className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-2 rounded text-sm transition-colors shadow-sm">
+                <CalendarDays size={16} /> SK Pembagian Tugas
+             </button>
+
              <button onClick={handleGenerateBeritaAcara} className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-2 rounded text-sm transition-colors shadow-sm">
                 <ScrollText size={16} /> Berita Acara
              </button>
@@ -1036,6 +1098,7 @@ const App: React.FC = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        {/* ... Rest of the app components ... */}
         
         {/* School Input Section */}
         <section className="bg-white rounded-lg shadow-md p-6 mb-8 border-l-4 border-blue-600 no-print">

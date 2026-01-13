@@ -12,6 +12,13 @@ export const generateInstrumentContent = async (
 
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+  // Format Calendar for context
+  let calendarContext = "";
+  if (schoolData.academicCalendar && schoolData.academicCalendar.length > 0) {
+    calendarContext = "ACUAN KALENDER PENDIDIKAN JAWA BARAT 2025/2026 (WAJIB DIGUNAKAN UNTUK PENANGGALAN CATATAN/DOKUMEN):\n";
+    calendarContext += JSON.stringify(schoolData.academicCalendar, null, 2);
+  }
+
   const prompt = `
     You are a professional school administration consultant in Indonesia.
     
@@ -22,10 +29,17 @@ export const generateInstrumentContent = async (
     Vision: ${schoolData.vision}
     Mission: ${schoolData.mission}
 
+    ${calendarContext}
+
     I will provide the list of criteria IDs and Checklist Items.
     For each row, generate a realistic 'Catatan' that provides specific context or hypothetical document names (e.g., "Notulen Rapat Tanggal 15 Juli 2025", "SK Kepala Sekolah No. 800/...") that align with the school's vision and mission.
     
-    IMPORTANT: All dates mentioned in the notes MUST be in the year 2025, starting from July 2025 onwards (Academic Year 2025/2026).
+    IMPORTANT RULES FOR DATES:
+    1. All dates mentioned in the notes MUST be in the year 2025 or 2026, consistent with the Academic Year 2025/2026.
+    2. Start of Academic Year is 14 July 2025. Do not generate dates for meetings/activities before this date for the new academic year context.
+    3. CHECK THE CALENDAR CONTEXT. Do not schedule activities on dates marked as 'HOLIDAY' (Libur).
+    4. Meetings usually happen on weekdays.
+    5. Supervision schedules should be after the first week of school (MPLS).
     
     Also, assume the school is well-prepared and check most relevant checklist items (return their indices).
     Set the score to 2 (maximum) if the evidence is strong.
@@ -86,8 +100,33 @@ export const generateSpecificDocument = async (
 
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
+  // Format daftar guru untuk prompt
+  const teachersList = schoolData.teachers && schoolData.teachers.length > 0
+    ? schoolData.teachers.map((t, i) => `${i + 1}. ${t.name} (NUPTK: ${t.nuptk || '-'})`).join('\n')
+    : "Data guru belum tersedia.";
+
+  // Format data jadwal untuk prompt (Jika ada)
+  let scheduleContext = "";
+  if (schoolData.classSchedules && schoolData.classSchedules.length > 0) {
+    scheduleContext = "REFERENSI JADWAL PELAJARAN DAN PEMBAGIAN TUGAS GURU:\n";
+    scheduleContext += JSON.stringify(schoolData.classSchedules, null, 2);
+  }
+
+  // Format Calendar for context
+  let calendarContext = "";
+  if (schoolData.academicCalendar && schoolData.academicCalendar.length > 0) {
+    calendarContext = "ACUAN KALENDER PENDIDIKAN JAWA BARAT 2025/2026 (WAJIB DIGUNAKAN UNTUK PENANGGALAN):\n";
+    calendarContext += JSON.stringify(schoolData.academicCalendar, null, 2);
+  }
+
   // Deteksi jika dokumen adalah dokumen perencanaan utama
   const isMajorPlanDoc = /RKJM|RKT|RKAS|Rencana Kerja|Program Kerja/i.test(docName);
+  
+  // Deteksi jika dokumen adalah Daftar Hadir
+  const isAttendanceDoc = /Daftar Hadir|Absensi|Presensi|Peserta Rapat|Undangan/i.test(docName);
+
+  // Deteksi jika dokumen adalah SK Pembagian Tugas
+  const isDutyAssignmentDoc = /Pembagian Tugas|Jadwal Pelajaran|SK Mengajar/i.test(docName);
 
   let structuralInstruction = "";
 
@@ -153,8 +192,28 @@ export const generateSpecificDocument = async (
   const prompt = `
     Anda adalah konsultan administrasi sekolah profesional untuk sekolah: ${schoolData.name}.
     Kepala Sekolah: ${schoolData.principal}.
+    Alamat: ${schoolData.address}, ${schoolData.subdistrict}, ${schoolData.district}, ${schoolData.regency}.
     
     Tugas: Buatkan dokumen "${docName}" untuk pemenuhan bukti fisik: "${criteriaContext}".
+
+    DATA REFERENSI:
+    1. GURU / PTK:
+    ${teachersList}
+
+    2. JADWAL PELAJARAN (Jika Relevan):
+    ${scheduleContext}
+
+    3. KALENDER PENDIDIKAN 2025/2026 (SANGAT PENTING):
+    ${calendarContext}
+
+    PERHATIAN KHUSUS TENTANG TANGGAL DAN JADWAL:
+    1. Semua dokumen yang dibuat HARUS mengacu pada "ACUAN KALENDER PENDIDIKAN JAWA BARAT 2025/2026" di atas.
+    2. Hari Pertama Masuk Sekolah adalah 14 Juli 2025.
+    3. Masa Pengenalan Lingkungan Sekolah (MPLS) adalah 14-16 Juli 2025.
+    4. Rapat Pembagian Tugas / Rapat Awal Tahun biasanya dilaksanakan SEBELUM hari pertama masuk (misal: 10-12 Juli 2025) atau PADA hari-hari pertama masuk.
+    5. Kegiatan Pembelajaran Efektif dimulai setelah MPLS.
+    6. JANGAN MENJADWALKAN RAPAT ATAU KEGIATAN DI HARI LIBUR NASIONAL ATAU CUTI BERSAMA yang tercantum di Kalender (Tanggal Merah).
+    7. Sesuaikan tanggal surat/dokumen dengan konteks kegiatan (Contoh: Undangan Rapat Kenaikan Kelas harus di bulan Juni 2026, Rapat Awal Tahun di Juli 2025).
 
     PERHATIAN UTAMA (FORMAT HTML):
     1. OUTPUT HARUS BERUPA KODE HTML (tanpa tag <html> atau <body>, langsung isinya saja).
@@ -166,7 +225,24 @@ export const generateSpecificDocument = async (
        </table>
     4. Gunakan tag <h2 style="text-align:center;">, <h3>, <p>, <b>, <u>, <br>, <ol>, <ul>, <li> untuk memformat teks agar rapi.
     5. UNTUK KOP SURAT: Gunakan <div style="text-align:center; border-bottom: 3px double black; padding-bottom: 10px; margin-bottom: 20px;">.
-    6. Semua tanggal dokumen harus Juli 2025 ke atas (Tahun 2025).
+       Isi KOP: YAYASAN PENDIDIKAN ISLAM PONDOK MODERN AL-GHOZALI <br> SMA ISLAM AL-GHOZALI.
+    6. Gunakan Tahun Pelajaran 2025/2026.
+
+    INSTRUKSI KHUSUS DAFTAR HADIR/LAMPIRAN PESERTA:
+    ${isAttendanceDoc ? `
+    - Dokumen ini adalah DAFTAR HADIR / ABSENSI / LAMPIRAN PESERTA RAPAT.
+    - ANDA WAJIB MEMASUKKAN NAMA-NAMA GURU DARI "DATA REFERENSI GURU" DI ATAS KE DALAM TABEL.
+    - JANGAN BIARKAN TABEL KOSONG atau hanya berisi titik-titik.
+    - Buat tabel dengan kolom minimal: No, Nama Lengkap, NUPTK, Jabatan (Tulis 'Guru'), Tanda Tangan.
+    - Masukkan minimal 10-20 nama guru dari daftar tersebut.` : 
+    `- Jika dokumen ini berupa SK TIM atau Notulen yang memerlukan daftar peserta, WAJIB ambil nama dari "DATA REFERENSI GURU" di atas. Jangan gunakan nama fiktif "Guru A".`}
+
+    INSTRUKSI KHUSUS SK PEMBAGIAN TUGAS / JADWAL:
+    ${isDutyAssignmentDoc ? `
+    - Gunakan data dari "REFERENSI JADWAL PELAJARAN" di atas untuk mengisi lampiran pembagian tugas.
+    - Buat Lampiran I: Pembagian Tugas Mengajar (Tabel: No, Nama Guru, Mata Pelajaran, Kelas, Jumlah Jam).
+    - Pastikan Nama Guru dan Mata Pelajaran sesuai dengan data yang diberikan.
+    - Buat Lampiran II: Jadwal Pelajaran (Format matriks sederhana atau daftar per kelas).` : ''}
 
     ${structuralInstruction ? structuralInstruction : `
     Instruksi Umum (Dokumen Lepas):
