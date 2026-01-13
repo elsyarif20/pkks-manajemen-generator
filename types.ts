@@ -31,6 +31,11 @@ export interface ClassSchedule {
   items: ScheduleItem[];
 }
 
+export interface HomeroomAssignment {
+  className: string;
+  teacherName: string;
+}
+
 export interface CalendarEvent {
   date: string; // e.g., "14 Juli 2025" or range "14-16 Juli 2025"
   description: string;
@@ -70,6 +75,7 @@ export interface SchoolData {
   teachers: Teacher[]; // New: List of teachers
   classSchedules: ClassSchedule[]; // New: Reference for lesson schedules
   academicCalendar: CalendarEvent[]; // New: Reference for Academic Calendar
+  homeroomAssignments: HomeroomAssignment[]; // New: Reference for Homeroom Teachers
 
   // Penilai & Berita Acara fields
   assessmentDate: string; // Waktu Pelaksanaan

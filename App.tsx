@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { InstrumentRow, SchoolData, CheckItem } from './types';
-import { INITIAL_ROWS, INITIAL_TEACHERS, MASTER_CLASS_SCHEDULES, ACADEMIC_CALENDAR_2025_2026 } from './constants';
+import { INITIAL_ROWS, INITIAL_TEACHERS, MASTER_CLASS_SCHEDULES, ACADEMIC_CALENDAR_2025_2026, HOMEROOM_ASSIGNMENTS } from './constants';
 import { generateInstrumentContent, generateSpecificDocument } from './services/geminiService';
 import { 
   FileText, 
@@ -104,6 +104,7 @@ const App: React.FC = () => {
     teachers: INITIAL_TEACHERS,
     classSchedules: MASTER_CLASS_SCHEDULES,
     academicCalendar: ACADEMIC_CALENDAR_2025_2026,
+    homeroomAssignments: HOMEROOM_ASSIGNMENTS,
 
     assessmentDate: "2026-01-12",
     
@@ -859,6 +860,18 @@ const App: React.FC = () => {
     }
   }
 
+  const handleGenerateSKWaliKelas = async () => {
+    setDocModal({ isOpen: true, title: "SK Wali Kelas", content: '', isLoading: true });
+    
+    try {
+      // Use "SK Wali Kelas" as the document name
+      const content = await generateSpecificDocument(schoolData, "SK Wali Kelas", "Pembagian Tugas Guru Sebagai Wali Kelas Semester Genap 2025/2026");
+      setDocModal(prev => ({ ...prev, content: content, isLoading: false }));
+    } catch (error) {
+      setDocModal(prev => ({ ...prev, content: "<p>Gagal membuat dokumen.</p>", isLoading: false }));
+    }
+  }
+
   // --- Document Generator Handler ---
 
   const handleGenerateDocument = async (row: InstrumentRow, item: CheckItem) => {
@@ -1125,6 +1138,7 @@ const App: React.FC = () => {
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-2 hidden lg:inline-block">Dokumen Pendukung</span>
               <ToolbarButton onClick={handleGenerateCover} icon={<BookOpen size={16} />} label="Cover" variant="primary" />
               <ToolbarButton onClick={handleGenerateSKPembagianTugas} icon={<CalendarDays size={16} />} label="SK Tugas" variant="primary" />
+              <ToolbarButton onClick={handleGenerateSKWaliKelas} icon={<UserCheck size={16} />} label="SK Wali" variant="primary" />
               <ToolbarButton onClick={handleGenerateBeritaAcara} icon={<ScrollText size={16} />} label="Berita Acara" variant="primary" />
             </div>
 
