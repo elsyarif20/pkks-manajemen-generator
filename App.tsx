@@ -21,12 +21,52 @@ import {
   Users,
   BookOpen,
   Contact,
-  CalendarDays
+  CalendarDays,
+  LayoutGrid,
+  UserCheck
 } from 'lucide-react';
 import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import html2canvas from 'html2canvas';
+
+// Helper Component for Toolbar Buttons
+const ToolbarButton: React.FC<{
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+  variant?: 'default' | 'primary' | 'outline';
+}> = ({ onClick, icon, label, variant = 'default' }) => {
+  const baseClass = "flex flex-col md:flex-row items-center justify-center gap-1.5 px-3 py-2 rounded-lg transition-all text-xs md:text-sm font-medium h-full min-w-[70px] md:min-w-fit whitespace-nowrap";
+  
+  const variants = {
+    default: "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+    primary: "text-blue-600 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 border border-blue-100",
+    outline: "text-slate-600 border border-slate-200 hover:bg-slate-50"
+  };
+
+  return (
+    <button onClick={onClick} className={`${baseClass} ${variants[variant]}`}>
+      {icon}
+      <span className="text-center">{label}</span>
+    </button>
+  );
+};
+
+const ExportButton: React.FC<{
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+  colorClass: string;
+}> = ({ onClick, icon, label, colorClass }) => (
+  <button 
+    onClick={onClick} 
+    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-transparent hover:border-slate-200 hover:bg-white hover:shadow-sm transition-all text-xs font-semibold ${colorClass}`}
+  >
+    {icon}
+    <span>{label}</span>
+  </button>
+);
 
 const App: React.FC = () => {
   const [rows, setRows] = useState<InstrumentRow[]>(INITIAL_ROWS);
@@ -59,7 +99,7 @@ const App: React.FC = () => {
     period: "Januari - Desember 2025",
 
     vision: "“TERWUJUDNYA PESERTA DIDIK YANG BERPRESTASI, BERAKHLAK MULIA, BERILMU PENGETAHUAN, DAN TEKNOLOGI BERDASARKAN IMAN DAN TAQWA.\"",
-    mission: `a. Meningkatkan kualitas pembelajaran dan pengajaran...`, // Truncated for brevity in default
+    mission: `a. Meningkatkan kualitas pembelajaran dan pengajaran...`, 
     
     teachers: INITIAL_TEACHERS,
     classSchedules: MASTER_CLASS_SCHEDULES,
@@ -1040,141 +1080,158 @@ const App: React.FC = () => {
   const avgScore = (totalScore / rows.length).toFixed(2);
 
   return (
-    <div className="min-h-screen pb-12">
-      {/* Header / Navbar */}
-      <header className="bg-blue-700 text-white shadow-lg sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-2">
-            <FileText size={24} />
-            <h1 className="text-xl font-bold tracking-tight">Generator Instrumen PKKS</h1>
+    <div className="min-h-screen bg-slate-50 pb-12 font-sans">
+      {/* 1. Primary Header - Branding & Main Action */}
+      <header className="bg-slate-900 text-white shadow-md z-50">
+        <div className="container mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-600 p-2 rounded-lg shadow-lg">
+              <FileText size={24} className="text-white" />
+            </div>
+            <div>
+              <h1 className="text-lg md:text-xl font-bold tracking-tight text-white leading-tight">Generator Instrumen PKKS</h1>
+              <p className="text-xs text-slate-400 font-medium">Komponen Manajemen Sekolah</p>
+            </div>
           </div>
           
-          <div className="flex flex-wrap gap-2 justify-center">
-             <button onClick={handleAiAutoFill} disabled={isGenerating} className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-2 rounded-md shadow-md transition-all disabled:opacity-50">
-               {isGenerating ? <Loader2 className="animate-spin" size={18}/> : <Wand2 size={18} />}
-               <span>Auto-Fill AI</span>
-             </button>
-             
-             <div className="h-8 w-px bg-blue-500 mx-2 hidden md:block"></div>
-
-             <button onClick={handleGenerateCover} className="flex items-center gap-2 bg-pink-600 hover:bg-pink-700 text-white px-3 py-2 rounded text-sm transition-colors shadow-sm">
-                <BookOpen size={16} /> Cover
-             </button>
-
-             <button onClick={handleGenerateIdentitasSekolah} className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded text-sm transition-colors shadow-sm">
-                <Building2 size={16} /> Identitas Sekolah
-             </button>
-
-             <button onClick={handleGenerateTimPKKS} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded text-sm transition-colors shadow-sm">
-                <Users size={16} /> Tim PKKS
-             </button>
-
-             <button onClick={handleGenerateDataGuru} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded text-sm transition-colors shadow-sm">
-                <Contact size={16} /> Data Guru
-             </button>
-
-             <button onClick={handleGenerateSKPembagianTugas} className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-2 rounded text-sm transition-colors shadow-sm">
-                <CalendarDays size={16} /> SK Pembagian Tugas
-             </button>
-
-             <button onClick={handleGenerateBeritaAcara} className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-2 rounded text-sm transition-colors shadow-sm">
-                <ScrollText size={16} /> Berita Acara
-             </button>
-
-             <button onClick={exportToPDF} className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded text-sm transition-colors">
-               <Printer size={16} /> PDF
-             </button>
-             <button onClick={exportToExcel} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded text-sm transition-colors">
-               <FileSpreadsheet size={16} /> Excel
-             </button>
-             <button onClick={exportToWordHtml} className="flex items-center gap-2 bg-blue-800 hover:bg-blue-900 text-white px-3 py-2 rounded text-sm transition-colors">
-               <Save size={16} /> Word
-             </button>
-             <button onClick={exportToImage} className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded text-sm transition-colors">
-               <ImageIcon size={16} /> IMG
+          <div>
+             <button 
+               onClick={handleAiAutoFill} 
+               disabled={isGenerating} 
+               className="group flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-5 py-2.5 rounded-full shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-blue-500/25 ring-1 ring-white/10"
+             >
+               {isGenerating ? <Loader2 className="animate-spin" size={18}/> : <Wand2 size={18} className="group-hover:rotate-12 transition-transform"/>}
+               <span className="font-semibold tracking-wide text-sm">Auto-Fill AI</span>
              </button>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
-        {/* ... Rest of the app components ... */}
+      {/* 2. Secondary Toolbar - Tools & Actions */}
+      <div className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm backdrop-blur-md bg-white/90 supports-[backdrop-filter]:bg-white/60">
+        <div className="container mx-auto px-4 py-2 overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-2 min-w-max">
+            
+            {/* Group: Data Input */}
+            <div className="flex items-center gap-1 pr-3 border-r border-slate-200 mr-2">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-2 hidden lg:inline-block">Data Utama</span>
+              <ToolbarButton onClick={handleGenerateIdentitasSekolah} icon={<Building2 size={16} />} label="Identitas" />
+              <ToolbarButton onClick={handleGenerateDataGuru} icon={<Contact size={16} />} label="Data Guru" />
+              <ToolbarButton onClick={handleGenerateTimPKKS} icon={<Users size={16} />} label="Tim PKKS" />
+            </div>
+
+            {/* Group: Documents */}
+            <div className="flex items-center gap-1 pr-3 border-r border-slate-200 mr-2">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-2 hidden lg:inline-block">Dokumen Pendukung</span>
+              <ToolbarButton onClick={handleGenerateCover} icon={<BookOpen size={16} />} label="Cover" variant="primary" />
+              <ToolbarButton onClick={handleGenerateSKPembagianTugas} icon={<CalendarDays size={16} />} label="SK Tugas" variant="primary" />
+              <ToolbarButton onClick={handleGenerateBeritaAcara} icon={<ScrollText size={16} />} label="Berita Acara" variant="primary" />
+            </div>
+
+            {/* Group: Exports */}
+            <div className="flex items-center gap-2 ml-auto">
+               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-1 hidden xl:inline-block">Ekspor</span>
+               <ExportButton onClick={exportToPDF} icon={<Printer size={16} />} label="PDF" colorClass="text-red-700 bg-red-50 hover:bg-red-100 border-red-200" />
+               <ExportButton onClick={exportToExcel} icon={<FileSpreadsheet size={16} />} label="Excel" colorClass="text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-200" />
+               <ExportButton onClick={exportToWordHtml} icon={<Save size={16} />} label="Word" colorClass="text-blue-700 bg-blue-50 hover:bg-blue-100 border-blue-200" />
+               <ExportButton onClick={exportToImage} icon={<ImageIcon size={16} />} label="IMG" colorClass="text-slate-700 bg-slate-100 hover:bg-slate-200 border-slate-200" />
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <main className="container mx-auto px-4 py-8 max-w-7xl">
         
         {/* School Input Section */}
-        <section className="bg-white rounded-lg shadow-md p-6 mb-8 border-l-4 border-blue-600 no-print">
-          <div className="flex justify-between items-center mb-4 cursor-pointer" onClick={() => setShowFullForm(!showFullForm)}>
-             <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                <div className="w-2 h-6 bg-blue-600 rounded-full"></div>
-                Data Sekolah & Administrasi {showFullForm ? '(Lengkap)' : '(Ringkas)'}
-             </h2>
-             <button className="text-blue-600">
-               {showFullForm ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
+        <section className="bg-white rounded-xl shadow-sm p-6 mb-8 border border-slate-200 no-print transition-all hover:shadow-md">
+          <div className="flex justify-between items-center mb-6 cursor-pointer group" onClick={() => setShowFullForm(!showFullForm)}>
+             <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 text-blue-600 rounded-lg group-hover:bg-blue-200 transition-colors">
+                  <LayoutGrid size={20} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-800">Data Administrasi Sekolah</h2>
+                  <p className="text-sm text-slate-500">Kelola identitas sekolah dan parameter penilaian</p>
+                </div>
+             </div>
+             <button className="text-slate-400 group-hover:text-blue-600 transition-colors bg-slate-50 p-2 rounded-full border border-slate-100">
+               {showFullForm ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
              </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Kolom Kiri: Data Dasar */}
-            <div className="space-y-4">
-              <h3 className="font-medium text-blue-600 border-b pb-1">Identitas Sekolah</h3>
+            <div className="space-y-5">
+              <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                <span className="w-1 h-4 bg-blue-500 rounded-full"></span>
+                <h3 className="font-semibold text-slate-700 text-sm uppercase tracking-wide">Identitas Utama</h3>
+              </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nama Sekolah</label>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Nama Sekolah</label>
                 <input 
                   type="text" 
                   value={schoolData.name} 
                   onChange={(e) => handleSchoolDataChange('name', e.target.value)}
-                  className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-slate-50 focus:bg-white"
+                  placeholder="Contoh: SMA Negeri 1 ..."
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Kepala Sekolah</label>
-                <input 
-                  type="text" 
-                  value={schoolData.principal} 
-                  onChange={(e) => handleSchoolDataChange('principal', e.target.value)}
-                  className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
-              <div>
-                 <label className="block text-sm font-medium text-gray-700 mb-1">NIP Kepala Sekolah</label>
-                 <input 
-                   type="text" 
-                   value={schoolData.nip} 
-                   onChange={(e) => handleSchoolDataChange('nip', e.target.value)}
-                   className="w-full border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                 />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Kepala Sekolah</label>
+                  <input 
+                    type="text" 
+                    value={schoolData.principal} 
+                    onChange={(e) => handleSchoolDataChange('principal', e.target.value)}
+                    className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-slate-50 focus:bg-white"
+                  />
+                </div>
+                <div>
+                   <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">NIP Kepala Sekolah</label>
+                   <input 
+                     type="text" 
+                     value={schoolData.nip} 
+                     onChange={(e) => handleSchoolDataChange('nip', e.target.value)}
+                     className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-slate-50 focus:bg-white"
+                   />
+                </div>
               </div>
             </div>
             
             {/* Kolom Kanan: Data Dasar Penilaian */}
-            <div className="space-y-4">
-              <h3 className="font-medium text-blue-600 border-b pb-1">Data Penilaian</h3>
+            <div className="space-y-5">
+              <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                <span className="w-1 h-4 bg-emerald-500 rounded-full"></span>
+                <h3 className="font-semibold text-slate-700 text-sm uppercase tracking-wide">Data Penilaian</h3>
+              </div>
                <div className="grid grid-cols-2 gap-4">
                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Penilai 1 (Nama)</label>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Penilai 1 (Pengawas)</label>
                     <input 
                       type="text" 
                       value={schoolData.assessor1} 
                       onChange={(e) => handleSchoolDataChange('assessor1', e.target.value)}
-                      className="w-full border border-gray-300 rounded-md p-2 text-sm outline-none"
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all bg-slate-50 focus:bg-white"
                     />
                  </div>
                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Penilai 2 (Nama)</label>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Penilai 2 (Pendamping)</label>
                     <input 
                       type="text" 
                       value={schoolData.assessor2} 
                       onChange={(e) => handleSchoolDataChange('assessor2', e.target.value)}
-                      className="w-full border border-gray-300 rounded-md p-2 text-sm outline-none"
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all bg-slate-50 focus:bg-white"
                     />
                  </div>
                </div>
                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Pelaksanaan</label>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Tanggal Pelaksanaan</label>
                   <input 
                     type="date" 
                     value={schoolData.assessmentDate} 
                     onChange={(e) => handleSchoolDataChange('assessmentDate', e.target.value)}
-                    className="w-full border border-gray-300 rounded-md p-2 outline-none"
+                    className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all bg-slate-50 focus:bg-white"
                   />
                </div>
             </div>
@@ -1182,100 +1239,112 @@ const App: React.FC = () => {
           
           {/* Form Lanjutan (Collapsible) */}
           {showFullForm && (
-            <div className="mt-6 pt-6 border-t border-gray-200 animate-in fade-in slide-in-from-top-4 duration-300">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="mt-8 pt-8 border-t border-slate-200 animate-in fade-in slide-in-from-top-4 duration-300">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-10">
                     {/* DETAIL SEKOLAH */}
                     <div className="space-y-4">
-                        <h3 className="font-bold text-gray-700 bg-gray-100 p-2 rounded">A. Detail Sekolah (Lengkap)</h3>
+                        <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                          <Building2 size={18} className="text-blue-500" />
+                          Detail Sekolah
+                        </h3>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-xs font-medium text-gray-500">NSS/NPSN</label>
-                                <input type="text" value={schoolData.nss} onChange={(e) => handleSchoolDataChange('nss', e.target.value)} className="w-full border p-1 rounded text-sm"/>
+                                <label className="block text-xs font-medium text-slate-500 mb-1">NSS/NPSN</label>
+                                <input type="text" value={schoolData.nss} onChange={(e) => handleSchoolDataChange('nss', e.target.value)} className="w-full border border-slate-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none"/>
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-gray-500">Status</label>
-                                <input type="text" value={schoolData.status} onChange={(e) => handleSchoolDataChange('status', e.target.value)} className="w-full border p-1 rounded text-sm"/>
+                                <label className="block text-xs font-medium text-slate-500 mb-1">Status</label>
+                                <input type="text" value={schoolData.status} onChange={(e) => handleSchoolDataChange('status', e.target.value)} className="w-full border border-slate-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none"/>
                             </div>
                         </div>
                         <div>
-                             <label className="block text-xs font-medium text-gray-500">Alamat (Jalan)</label>
-                             <input type="text" value={schoolData.address} onChange={(e) => handleSchoolDataChange('address', e.target.value)} className="w-full border p-1 rounded text-sm"/>
+                             <label className="block text-xs font-medium text-slate-500 mb-1">Alamat (Jalan)</label>
+                             <input type="text" value={schoolData.address} onChange={(e) => handleSchoolDataChange('address', e.target.value)} className="w-full border border-slate-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none"/>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                            <div><label className="block text-xs font-medium text-gray-500">Desa/Kelurahan</label><input type="text" value={schoolData.subdistrict} onChange={(e)=>handleSchoolDataChange('subdistrict', e.target.value)} className="w-full border p-1 rounded text-sm"/></div>
-                            <div><label className="block text-xs font-medium text-gray-500">Kecamatan</label><input type="text" value={schoolData.district} onChange={(e)=>handleSchoolDataChange('district', e.target.value)} className="w-full border p-1 rounded text-sm"/></div>
-                            <div><label className="block text-xs font-medium text-gray-500">Kabupaten/Kota</label><input type="text" value={schoolData.regency} onChange={(e)=>handleSchoolDataChange('regency', e.target.value)} className="w-full border p-1 rounded text-sm"/></div>
-                            <div><label className="block text-xs font-medium text-gray-500">Kode Pos</label><input type="text" value={schoolData.postalCode} onChange={(e)=>handleSchoolDataChange('postalCode', e.target.value)} className="w-full border p-1 rounded text-sm"/></div>
+                            <div><label className="block text-xs font-medium text-slate-500 mb-1">Desa/Kelurahan</label><input type="text" value={schoolData.subdistrict} onChange={(e)=>handleSchoolDataChange('subdistrict', e.target.value)} className="w-full border border-slate-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none"/></div>
+                            <div><label className="block text-xs font-medium text-slate-500 mb-1">Kecamatan</label><input type="text" value={schoolData.district} onChange={(e)=>handleSchoolDataChange('district', e.target.value)} className="w-full border border-slate-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none"/></div>
+                            <div><label className="block text-xs font-medium text-slate-500 mb-1">Kabupaten/Kota</label><input type="text" value={schoolData.regency} onChange={(e)=>handleSchoolDataChange('regency', e.target.value)} className="w-full border border-slate-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none"/></div>
+                            <div><label className="block text-xs font-medium text-slate-500 mb-1">Kode Pos</label><input type="text" value={schoolData.postalCode} onChange={(e)=>handleSchoolDataChange('postalCode', e.target.value)} className="w-full border border-slate-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none"/></div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                            <div><label className="block text-xs font-medium text-gray-500">Telepon</label><input type="text" value={schoolData.phone} onChange={(e)=>handleSchoolDataChange('phone', e.target.value)} className="w-full border p-1 rounded text-sm"/></div>
-                            <div><label className="block text-xs font-medium text-gray-500">Website</label><input type="text" value={schoolData.website} onChange={(e)=>handleSchoolDataChange('website', e.target.value)} className="w-full border p-1 rounded text-sm"/></div>
+                            <div><label className="block text-xs font-medium text-slate-500 mb-1">Telepon</label><input type="text" value={schoolData.phone} onChange={(e)=>handleSchoolDataChange('phone', e.target.value)} className="w-full border border-slate-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none"/></div>
+                            <div><label className="block text-xs font-medium text-slate-500 mb-1">Website</label><input type="text" value={schoolData.website} onChange={(e)=>handleSchoolDataChange('website', e.target.value)} className="w-full border border-slate-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none"/></div>
                         </div>
                     </div>
 
                     {/* DETAIL KEPALA SEKOLAH */}
                     <div className="space-y-4">
-                        <h3 className="font-bold text-gray-700 bg-gray-100 p-2 rounded">B. Detail Kepala Sekolah</h3>
+                        <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                          <UserCheck size={18} className="text-blue-500" />
+                          Detail Kepala Sekolah
+                        </h3>
                         <div className="grid grid-cols-2 gap-4">
-                             <div><label className="block text-xs font-medium text-gray-500">TTL</label><input type="text" value={schoolData.principalDob} onChange={(e)=>handleSchoolDataChange('principalDob', e.target.value)} className="w-full border p-1 rounded text-sm"/></div>
-                             <div><label className="block text-xs font-medium text-gray-500">NUKS</label><input type="text" value={schoolData.principalNuks} onChange={(e)=>handleSchoolDataChange('principalNuks', e.target.value)} className="w-full border p-1 rounded text-sm"/></div>
+                             <div><label className="block text-xs font-medium text-slate-500 mb-1">TTL</label><input type="text" value={schoolData.principalDob} onChange={(e)=>handleSchoolDataChange('principalDob', e.target.value)} className="w-full border border-slate-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none"/></div>
+                             <div><label className="block text-xs font-medium text-slate-500 mb-1">NUKS</label><input type="text" value={schoolData.principalNuks} onChange={(e)=>handleSchoolDataChange('principalNuks', e.target.value)} className="w-full border border-slate-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none"/></div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                             <div><label className="block text-xs font-medium text-gray-500">Pangkat/Gol</label><input type="text" value={schoolData.principalRank} onChange={(e)=>handleSchoolDataChange('principalRank', e.target.value)} className="w-full border p-1 rounded text-sm"/></div>
-                             <div><label className="block text-xs font-medium text-gray-500">Jabatan</label><input type="text" value={schoolData.principalPosition} onChange={(e)=>handleSchoolDataChange('principalPosition', e.target.value)} className="w-full border p-1 rounded text-sm"/></div>
+                             <div><label className="block text-xs font-medium text-slate-500 mb-1">Pangkat/Gol</label><input type="text" value={schoolData.principalRank} onChange={(e)=>handleSchoolDataChange('principalRank', e.target.value)} className="w-full border border-slate-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none"/></div>
+                             <div><label className="block text-xs font-medium text-slate-500 mb-1">Jabatan</label><input type="text" value={schoolData.principalPosition} onChange={(e)=>handleSchoolDataChange('principalPosition', e.target.value)} className="w-full border border-slate-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none"/></div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                             <div><label className="block text-xs font-medium text-gray-500">TMT Kepsek</label><input type="text" value={schoolData.principalTmt} onChange={(e)=>handleSchoolDataChange('principalTmt', e.target.value)} className="w-full border p-1 rounded text-sm"/></div>
-                             <div><label className="block text-xs font-medium text-gray-500">TMT Sekolah Ini</label><input type="text" value={schoolData.principalTmtThisSchool} onChange={(e)=>handleSchoolDataChange('principalTmtThisSchool', e.target.value)} className="w-full border p-1 rounded text-sm"/></div>
+                             <div><label className="block text-xs font-medium text-slate-500 mb-1">TMT Kepsek</label><input type="text" value={schoolData.principalTmt} onChange={(e)=>handleSchoolDataChange('principalTmt', e.target.value)} className="w-full border border-slate-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none"/></div>
+                             <div><label className="block text-xs font-medium text-slate-500 mb-1">TMT Sekolah Ini</label><input type="text" value={schoolData.principalTmtThisSchool} onChange={(e)=>handleSchoolDataChange('principalTmtThisSchool', e.target.value)} className="w-full border border-slate-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none"/></div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                             <div><label className="block text-xs font-medium text-gray-500">Pendidikan Terakhir</label><input type="text" value={schoolData.principalEducation} onChange={(e)=>handleSchoolDataChange('principalEducation', e.target.value)} className="w-full border p-1 rounded text-sm"/></div>
-                             <div><label className="block text-xs font-medium text-gray-500">Periode Penilaian</label><input type="text" value={schoolData.period} onChange={(e)=>handleSchoolDataChange('period', e.target.value)} className="w-full border p-1 rounded text-sm"/></div>
+                             <div><label className="block text-xs font-medium text-slate-500 mb-1">Pendidikan Terakhir</label><input type="text" value={schoolData.principalEducation} onChange={(e)=>handleSchoolDataChange('principalEducation', e.target.value)} className="w-full border border-slate-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none"/></div>
+                             <div><label className="block text-xs font-medium text-slate-500 mb-1">Periode Penilaian</label><input type="text" value={schoolData.period} onChange={(e)=>handleSchoolDataChange('period', e.target.value)} className="w-full border border-slate-200 rounded px-2 py-1.5 text-sm focus:border-blue-500 outline-none"/></div>
                         </div>
                     </div>
 
                     {/* DETAIL PENILAI */}
                     <div className="space-y-4 md:col-span-2">
-                        <h3 className="font-bold text-gray-700 bg-gray-100 p-2 rounded">C. Detail Penilai</h3>
+                        <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                          <Users size={18} className="text-blue-500" />
+                          Detail Penilai
+                        </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* PENILAI 1 */}
-                            <div className="border p-3 rounded bg-blue-50/50">
-                                <h4 className="font-semibold text-sm mb-2 text-blue-700">Penilai 1</h4>
+                            <div className="border border-slate-200 p-4 rounded-xl bg-slate-50">
+                                <h4 className="font-semibold text-sm mb-3 text-slate-700 border-b border-slate-200 pb-2">Penilai 1</h4>
                                 <div className="space-y-2">
-                                    <input type="text" placeholder="NIP" value={schoolData.assessor1Nip} onChange={(e)=>handleSchoolDataChange('assessor1Nip', e.target.value)} className="w-full border p-1 rounded text-sm"/>
-                                    <input type="text" placeholder="Pangkat/Gol" value={schoolData.assessor1Rank} onChange={(e)=>handleSchoolDataChange('assessor1Rank', e.target.value)} className="w-full border p-1 rounded text-sm"/>
-                                    <input type="text" placeholder="Jabatan" value={schoolData.assessor1Position} onChange={(e)=>handleSchoolDataChange('assessor1Position', e.target.value)} className="w-full border p-1 rounded text-sm"/>
-                                    <input type="text" placeholder="Unit Kerja" value={schoolData.assessor1Unit} onChange={(e)=>handleSchoolDataChange('assessor1Unit', e.target.value)} className="w-full border p-1 rounded text-sm"/>
-                                    <input type="text" placeholder="No Surat Perintah" value={schoolData.assessor1LetterNumber} onChange={(e)=>handleSchoolDataChange('assessor1LetterNumber', e.target.value)} className="w-full border p-1 rounded text-sm"/>
+                                    <input type="text" placeholder="NIP" value={schoolData.assessor1Nip} onChange={(e)=>handleSchoolDataChange('assessor1Nip', e.target.value)} className="w-full bg-white border border-slate-200 rounded px-2 py-1.5 text-sm outline-none focus:border-blue-500"/>
+                                    <input type="text" placeholder="Pangkat/Gol" value={schoolData.assessor1Rank} onChange={(e)=>handleSchoolDataChange('assessor1Rank', e.target.value)} className="w-full bg-white border border-slate-200 rounded px-2 py-1.5 text-sm outline-none focus:border-blue-500"/>
+                                    <input type="text" placeholder="Jabatan" value={schoolData.assessor1Position} onChange={(e)=>handleSchoolDataChange('assessor1Position', e.target.value)} className="w-full bg-white border border-slate-200 rounded px-2 py-1.5 text-sm outline-none focus:border-blue-500"/>
+                                    <input type="text" placeholder="Unit Kerja" value={schoolData.assessor1Unit} onChange={(e)=>handleSchoolDataChange('assessor1Unit', e.target.value)} className="w-full bg-white border border-slate-200 rounded px-2 py-1.5 text-sm outline-none focus:border-blue-500"/>
+                                    <input type="text" placeholder="No Surat Perintah" value={schoolData.assessor1LetterNumber} onChange={(e)=>handleSchoolDataChange('assessor1LetterNumber', e.target.value)} className="w-full bg-white border border-slate-200 rounded px-2 py-1.5 text-sm outline-none focus:border-blue-500"/>
                                 </div>
                             </div>
                             
                             {/* PENILAI 2 */}
-                            <div className="border p-3 rounded bg-blue-50/50">
-                                <h4 className="font-semibold text-sm mb-2 text-blue-700">Penilai 2</h4>
+                            <div className="border border-slate-200 p-4 rounded-xl bg-slate-50">
+                                <h4 className="font-semibold text-sm mb-3 text-slate-700 border-b border-slate-200 pb-2">Penilai 2</h4>
                                 <div className="space-y-2">
-                                    <input type="text" placeholder="NIP" value={schoolData.assessor2Nip} onChange={(e)=>handleSchoolDataChange('assessor2Nip', e.target.value)} className="w-full border p-1 rounded text-sm"/>
-                                    <input type="text" placeholder="Pangkat/Gol" value={schoolData.assessor2Rank} onChange={(e)=>handleSchoolDataChange('assessor2Rank', e.target.value)} className="w-full border p-1 rounded text-sm"/>
-                                    <input type="text" placeholder="Jabatan" value={schoolData.assessor2Position} onChange={(e)=>handleSchoolDataChange('assessor2Position', e.target.value)} className="w-full border p-1 rounded text-sm"/>
-                                    <input type="text" placeholder="Unit Kerja" value={schoolData.assessor2Unit} onChange={(e)=>handleSchoolDataChange('assessor2Unit', e.target.value)} className="w-full border p-1 rounded text-sm"/>
-                                    <input type="text" placeholder="No Surat Perintah" value={schoolData.assessor2LetterNumber} onChange={(e)=>handleSchoolDataChange('assessor2LetterNumber', e.target.value)} className="w-full border p-1 rounded text-sm"/>
+                                    <input type="text" placeholder="NIP" value={schoolData.assessor2Nip} onChange={(e)=>handleSchoolDataChange('assessor2Nip', e.target.value)} className="w-full bg-white border border-slate-200 rounded px-2 py-1.5 text-sm outline-none focus:border-blue-500"/>
+                                    <input type="text" placeholder="Pangkat/Gol" value={schoolData.assessor2Rank} onChange={(e)=>handleSchoolDataChange('assessor2Rank', e.target.value)} className="w-full bg-white border border-slate-200 rounded px-2 py-1.5 text-sm outline-none focus:border-blue-500"/>
+                                    <input type="text" placeholder="Jabatan" value={schoolData.assessor2Position} onChange={(e)=>handleSchoolDataChange('assessor2Position', e.target.value)} className="w-full bg-white border border-slate-200 rounded px-2 py-1.5 text-sm outline-none focus:border-blue-500"/>
+                                    <input type="text" placeholder="Unit Kerja" value={schoolData.assessor2Unit} onChange={(e)=>handleSchoolDataChange('assessor2Unit', e.target.value)} className="w-full bg-white border border-slate-200 rounded px-2 py-1.5 text-sm outline-none focus:border-blue-500"/>
+                                    <input type="text" placeholder="No Surat Perintah" value={schoolData.assessor2LetterNumber} onChange={(e)=>handleSchoolDataChange('assessor2LetterNumber', e.target.value)} className="w-full bg-white border border-slate-200 rounded px-2 py-1.5 text-sm outline-none focus:border-blue-500"/>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
                 
-                {/* Visi Misi moved to bottom of expanded form */}
-                <div className="mt-6 pt-4 border-t">
-                  <h3 className="font-medium text-blue-600 mb-2">Visi & Misi</h3>
-                  <div className="grid grid-cols-1 gap-4">
+                {/* Visi Misi */}
+                <div className="mt-8 pt-6 border-t border-slate-200">
+                  <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <ScrollText size={18} className="text-blue-500" />
+                    Visi & Misi Sekolah
+                  </h3>
+                  <div className="grid grid-cols-1 gap-6">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Visi</label>
-                        <textarea value={schoolData.vision} onChange={(e) => handleSchoolDataChange('vision', e.target.value)} className="w-full border border-gray-300 rounded-md p-2 h-16 outline-none resize-none"/>
+                        <label className="block text-xs font-semibold text-slate-500 uppercase mb-2">Visi</label>
+                        <textarea value={schoolData.vision} onChange={(e) => handleSchoolDataChange('vision', e.target.value)} className="w-full border border-slate-200 rounded-lg p-3 h-20 outline-none resize-none focus:border-blue-500 bg-slate-50 focus:bg-white text-sm"/>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Misi</label>
-                        <textarea value={schoolData.mission} onChange={(e) => handleSchoolDataChange('mission', e.target.value)} className="w-full border border-gray-300 rounded-md p-2 h-20 outline-none resize-none"/>
+                        <label className="block text-xs font-semibold text-slate-500 uppercase mb-2">Misi</label>
+                        <textarea value={schoolData.mission} onChange={(e) => handleSchoolDataChange('mission', e.target.value)} className="w-full border border-slate-200 rounded-lg p-3 h-24 outline-none resize-none focus:border-blue-500 bg-slate-50 focus:bg-white text-sm"/>
                     </div>
                   </div>
                 </div>
@@ -1284,18 +1353,18 @@ const App: React.FC = () => {
         </section>
 
         {/* The Instrument Table */}
-        <div className="bg-white rounded-lg shadow-xl overflow-hidden" ref={tableRef}>
-          <div className="p-6 bg-gray-50 border-b border-gray-200">
-             <div className="text-center mb-4">
-                <h2 className="text-2xl font-bold uppercase text-gray-800">Instrumen PKKS</h2>
-                <p className="text-gray-600">{schoolData.name}</p>
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200" ref={tableRef}>
+          <div className="p-6 bg-gradient-to-r from-slate-50 to-white border-b border-slate-200">
+             <div className="text-center mb-6">
+                <h2 className="text-2xl md:text-3xl font-bold uppercase text-slate-800 tracking-tight">Instrumen PKKS</h2>
+                <p className="text-slate-500 mt-1 font-medium">{schoolData.name}</p>
              </div>
              
-             <div className="flex justify-end gap-4 text-sm font-medium">
-               <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full">
+             <div className="flex justify-end gap-3 text-sm font-semibold">
+               <div className="bg-blue-50 text-blue-700 border border-blue-100 px-4 py-1.5 rounded-full shadow-sm">
                  Total Skor: {totalScore}
                </div>
-               <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full">
+               <div className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-4 py-1.5 rounded-full shadow-sm">
                  Rata-rata: {avgScore}
                </div>
              </div>
@@ -1304,63 +1373,63 @@ const App: React.FC = () => {
           <div className="overflow-x-auto">
             <table className="w-full border-collapse min-w-[1000px]">
               <thead>
-                <tr className="bg-blue-600 text-white text-sm uppercase tracking-wider">
-                  <th className="p-3 border border-blue-700 w-24">PJ</th>
-                  <th className="p-3 border border-blue-700 w-12 text-center">No</th>
-                  <th className="p-3 border border-blue-700 w-1/4">Kriteria</th>
-                  <th className="p-3 border border-blue-700 w-1/5">Bukti Teridentifikasi</th>
-                  <th className="p-3 border border-blue-700 w-1/5">Ceklist Dokumen</th>
-                  <th className="p-3 border border-blue-700 w-1/5">Catatan</th>
-                  <th className="p-3 border border-blue-700 w-16 text-center">Skor</th>
+                <tr className="bg-slate-800 text-white text-xs uppercase tracking-wider">
+                  <th className="p-4 border-b border-slate-700 w-24 text-left font-semibold">PJ</th>
+                  <th className="p-4 border-b border-slate-700 w-12 text-center font-semibold">No</th>
+                  <th className="p-4 border-b border-slate-700 w-1/4 text-left font-semibold">Kriteria</th>
+                  <th className="p-4 border-b border-slate-700 w-1/5 text-left font-semibold">Bukti Teridentifikasi</th>
+                  <th className="p-4 border-b border-slate-700 w-1/5 text-left font-semibold">Ceklist Dokumen</th>
+                  <th className="p-4 border-b border-slate-700 w-1/5 text-left font-semibold">Catatan</th>
+                  <th className="p-4 border-b border-slate-700 w-16 text-center font-semibold">Skor</th>
                 </tr>
               </thead>
-              <tbody className="text-sm text-gray-800">
+              <tbody className="text-sm text-slate-700">
                 {rows.map((row) => (
-                  <tr key={row.id} className="hover:bg-blue-50 transition-colors even:bg-slate-50">
+                  <tr key={row.id} className="hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-b-0">
                     {/* PJ */}
-                    <td className="p-3 border border-gray-300 font-medium text-center bg-yellow-100/30">
+                    <td className="p-3 align-top">
                       <input 
                         type="text" 
                         value={row.pj} 
                         onChange={(e) => handleRowChange(row.id, 'pj', e.target.value)}
-                        className="w-full bg-transparent text-center outline-none focus:border-b focus:border-blue-500"
+                        className="w-full bg-amber-50/50 border border-amber-100 rounded px-2 py-1 text-center outline-none focus:ring-1 focus:ring-amber-400 text-xs font-medium"
+                        placeholder="Inisial PJ"
                       />
                     </td>
                     
                     {/* No */}
-                    <td className="p-3 border border-gray-300 text-center font-semibold">{row.id}</td>
+                    <td className="p-4 text-center font-medium text-slate-500">{row.id}</td>
                     
                     {/* Kriteria */}
-                    <td className="p-3 border border-gray-300 align-top">
+                    <td className="p-4 align-top leading-relaxed">
                        {row.kriteria}
                     </td>
 
                     {/* Bukti */}
-                    <td className="p-3 border border-gray-300 align-top text-gray-600 italic text-xs">
+                    <td className="p-4 align-top text-slate-500 italic text-xs leading-relaxed bg-slate-50/30">
                       {row.bukti}
                     </td>
 
                     {/* Checklist */}
-                    <td className="p-3 border border-gray-300 align-top bg-green-50/50">
-                      <div className="space-y-3">
+                    <td className="p-3 align-top bg-emerald-50/10">
+                      <div className="space-y-2">
                         {row.checklistItems.map((item, idx) => (
-                          <div key={idx} className="flex items-center justify-between gap-2 p-1.5 bg-white/60 rounded hover:bg-white transition-colors border border-transparent hover:border-blue-200">
-                            <label className="flex items-start gap-2 cursor-pointer flex-1">
-                              <input 
-                                type="checkbox" 
-                                checked={item.checked} 
-                                onChange={() => toggleCheck(row.id, idx)}
-                                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                              />
-                              <span className={`text-xs ${item.checked ? 'text-gray-900 font-medium' : 'text-gray-500'}`}>
-                                {item.label}
-                              </span>
-                            </label>
-                            
+                          <div key={idx} className="group flex items-start gap-2 p-2 rounded-lg hover:bg-white transition-all border border-transparent hover:border-slate-100 hover:shadow-sm">
+                            <input 
+                              type="checkbox" 
+                              checked={item.checked} 
+                              onChange={() => toggleCheck(row.id, idx)}
+                              className="mt-0.5 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+                            />
+                            <div className="flex-1 min-w-0">
+                                <span className={`block text-xs leading-tight ${item.checked ? 'text-slate-900 font-medium' : 'text-slate-500'}`}>
+                                    {item.label}
+                                </span>
+                            </div>
                             <button 
                                 onClick={() => handleGenerateDocument(row, item)}
                                 title="Buat Dokumen Ini"
-                                className="p-1.5 bg-blue-100 hover:bg-blue-600 hover:text-white text-blue-600 rounded-md transition-all shadow-sm flex-shrink-0"
+                                className="opacity-0 group-hover:opacity-100 p-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-600 hover:text-white transition-all"
                             >
                                 <FilePlus size={14} />
                             </button>
@@ -1370,26 +1439,33 @@ const App: React.FC = () => {
                     </td>
 
                     {/* Catatan */}
-                    <td className="p-3 border border-gray-300 align-top">
+                    <td className="p-3 align-top">
                       <textarea 
                         value={row.catatan}
                         onChange={(e) => handleRowChange(row.id, 'catatan', e.target.value)}
-                        className="w-full h-full min-h-[100px] text-xs p-2 border border-transparent hover:border-gray-200 focus:border-blue-500 rounded outline-none resize-none bg-transparent focus:bg-white transition-all"
-                        placeholder="Klik untuk tambah catatan..."
+                        className="w-full h-full min-h-[100px] text-xs p-3 border border-slate-200 rounded-lg outline-none resize-none focus:ring-2 focus:ring-blue-500 bg-white transition-all placeholder:text-slate-300"
+                        placeholder="Tambahkan catatan..."
                       />
                     </td>
 
                     {/* Skor */}
-                    <td className="p-3 border border-gray-300 text-center align-top bg-yellow-100/20">
-                      <select 
-                        value={row.skor} 
-                        onChange={(e) => handleRowChange(row.id, 'skor', Number(e.target.value))}
-                        className="bg-transparent font-bold text-center outline-none w-full cursor-pointer"
-                      >
-                        <option value={0}>0</option>
-                        <option value={1}>1</option>
-                        <option value={2}>2</option>
-                      </select>
+                    <td className="p-3 align-top">
+                      <div className="flex justify-center">
+                        <select 
+                            value={row.skor} 
+                            onChange={(e) => handleRowChange(row.id, 'skor', Number(e.target.value))}
+                            className={`
+                                font-bold text-center outline-none cursor-pointer border rounded-md py-1 px-2 text-sm appearance-none
+                                ${row.skor === 2 ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 
+                                  row.skor === 1 ? 'bg-amber-100 text-amber-800 border-amber-200' : 
+                                  'bg-slate-100 text-slate-500 border-slate-200'}
+                            `}
+                        >
+                            <option value={0}>0</option>
+                            <option value={1}>1</option>
+                            <option value={2}>2</option>
+                        </select>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -1397,53 +1473,58 @@ const App: React.FC = () => {
             </table>
           </div>
           
-          <div className="p-6 bg-gray-50 border-t border-gray-200 flex justify-end">
-            <div className="text-right">
-              <p className="mb-8 font-medium">Kepala Sekolah,</p>
-              <p className="font-bold underline mt-12">{schoolData.principal}</p>
-              <p className="text-sm text-gray-600">NIP. {schoolData.nip || '.......................'}</p>
+          <div className="p-8 bg-slate-50 border-t border-slate-200 flex justify-end">
+            <div className="text-center min-w-[200px]">
+              <p className="mb-16 font-medium text-slate-600">Mengetahui,<br/>Kepala Sekolah</p>
+              <p className="font-bold text-slate-900 border-b border-slate-400 inline-block pb-1 px-4">{schoolData.principal}</p>
+              <p className="text-sm text-slate-500 mt-1">NIP. {schoolData.nip || '-'}</p>
             </div>
           </div>
         </div>
 
         {/* Document Preview Modal */}
         {docModal.isOpen && (
-          <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4 print:hidden backdrop-blur-sm">
-            <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col border border-gray-200 animate-in fade-in zoom-in duration-200">
+          <div className="fixed inset-0 bg-slate-900/60 z-[100] flex items-center justify-center p-4 print:hidden backdrop-blur-sm">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col border border-slate-200 animate-in fade-in zoom-in duration-200">
                {/* Header */}
-               <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-lg">
-                 <div className="flex items-center gap-2 text-blue-800">
-                   <FileText size={20} />
-                   <h3 className="font-bold text-lg">{docModal.title || 'Dokumen Baru'}</h3>
+               <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white rounded-t-xl">
+                 <div className="flex items-center gap-3">
+                   <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
+                     <FileText size={20} />
+                   </div>
+                   <div>
+                     <h3 className="font-bold text-slate-800 text-lg">{docModal.title || 'Dokumen Baru'}</h3>
+                     <p className="text-xs text-slate-500">Pratinjau dokumen sebelum diunduh</p>
+                   </div>
                  </div>
-                 <button onClick={handleCloseModal} className="text-gray-500 hover:text-red-500 transition-colors p-1 hover:bg-gray-200 rounded-full">
+                 <button onClick={handleCloseModal} className="text-slate-400 hover:text-red-500 transition-colors p-2 hover:bg-slate-50 rounded-full">
                    <X size={20} />
                  </button>
                </div>
 
                {/* Body */}
-               <div className="flex-1 overflow-auto p-6 bg-gray-100">
+               <div className="flex-1 overflow-auto bg-slate-100 p-4 md:p-8 flex justify-center">
                   {docModal.isLoading ? (
-                    <div className="flex flex-col items-center justify-center h-64 gap-4 text-gray-500">
-                      <Loader2 className="animate-spin text-blue-600" size={48} />
-                      <p className="font-medium animate-pulse">Sedang membuat dokumen formal...</p>
+                    <div className="flex flex-col items-center justify-center h-full gap-4">
+                      <div className="relative">
+                        <div className="w-16 h-16 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin"></div>
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                            <Wand2 size={24} className="text-blue-600" />
+                        </div>
+                      </div>
+                      <p className="font-medium text-slate-600 animate-pulse">Sedang menyusun dokumen formal...</p>
                     </div>
                   ) : (
-                    <div className="bg-white shadow-sm p-8 min-h-[500px] border border-gray-200 mx-auto overflow-y-auto"
+                    <div className="bg-white shadow-lg p-8 md:p-[2cm] min-h-[29.7cm] w-[21cm] border border-slate-200 mx-auto transition-all origin-top scale-95 md:scale-100"
                          style={{ 
-                           width: '210mm', 
-                           minHeight: '297mm', 
-                           padding: '20mm', // 2cm
                            fontFamily: '"Times New Roman", Times, serif',
                            fontSize: '12pt',
                            lineHeight: '1.5'
                          }}>
                        <div 
-                         className="prose max-w-none font-serif text-sm"
+                         className="prose prose-slate max-w-none font-serif text-black prose-p:text-black prose-headings:text-black"
                          style={{ 
                             fontFamily: '"Times New Roman", Times, serif',
-                            fontSize: '12pt',
-                            lineHeight: '1.5'
                           }}
                          dangerouslySetInnerHTML={{ __html: docModal.content }}
                        />
@@ -1452,16 +1533,16 @@ const App: React.FC = () => {
                </div>
 
                {/* Footer */}
-               <div className="p-4 border-t border-gray-200 bg-white flex justify-end gap-3 rounded-b-lg">
-                 <button onClick={handleCloseModal} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded font-medium text-sm">
+               <div className="px-6 py-4 border-t border-slate-200 bg-white flex justify-end gap-3 rounded-b-xl">
+                 <button onClick={handleCloseModal} className="px-5 py-2.5 text-slate-600 hover:bg-slate-50 rounded-lg font-medium text-sm transition-colors">
                    Tutup
                  </button>
                  {!docModal.isLoading && (
                    <>
-                     <button onClick={handleCopyContent} className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded font-medium text-sm flex items-center gap-2">
+                     <button onClick={handleCopyContent} className="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-medium text-sm flex items-center gap-2 shadow-sm transition-all hover:shadow-md">
                        <Copy size={16} /> Salin Teks
                      </button>
-                     <button onClick={handleDownloadDoc} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium text-sm flex items-center gap-2">
+                     <button onClick={handleDownloadDoc} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm flex items-center gap-2 shadow-blue-200 shadow-lg transition-all hover:shadow-xl hover:-translate-y-0.5">
                        <Download size={16} /> Download Word
                      </button>
                    </>
